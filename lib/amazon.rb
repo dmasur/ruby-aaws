@@ -33,7 +33,8 @@ module Amazon
     # slightly to please AWS.
     #
     string.gsub( /([^a-zA-Z0-9_.~-]+)/ ) do
-      '%' + $1.unpack( 'H2' * $1.bytesize ).join( '%' ).upcase
+      #'%' + $1.unpack( 'H2' * $1.bytesize ).join( '%' ).upcase
+      '%' + $1.unpack( 'H2' * $1.size ).join( '%' ).upcase
     end
   end
 
@@ -85,7 +86,8 @@ module Amazon
 
 	# Perform the usual search for the system and user config files.
 	#
-	config_files = [ File.join( '', 'etc', 'amazonrc' ) ]
+	config_files = [ File.join( '', 'etc', 'amazonrc' ) ]# add rails-file
+  config_files << File.join(RAILS_ROOT, 'config', '.amazonrc') if defined?(Rails.root)
 
 	# Figure out where home is. The locations after HOME are for Windows.
 	# [ruby-core:12347]

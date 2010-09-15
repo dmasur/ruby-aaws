@@ -1,4 +1,4 @@
-# $Id: amazon.rb,v 1.29 2009/06/08 15:20:11 ianmacd Exp $
+# $Id: amazon.rb,v 1.33 2010/03/19 17:20:46 ianmacd Exp $
 #
 
 module Amazon
@@ -11,13 +11,19 @@ module Amazon
 
   @@config = {}
 
+  # We're going to have to use String#size if String#bytesize isn't available.
+  # This is for Ruby pre-1.8.7.
+  #
+  unless String.instance_methods.include? 'bytesize'
+    String.module_eval( 'alias :bytesize :size' )
+  end
+
   # Prints debugging messages and works like printf, except that it prints
   # only when Ruby is run with the -d switch.
   #
   def Amazon.dprintf(format='', *args)
     $stderr.printf( format + "\n", *args ) if $DEBUG
   end
-
 
   # Encode a string, such that it is suitable for HTTP transmission.
   #
@@ -30,7 +36,6 @@ module Amazon
       '%' + $1.unpack( 'H2' * $1.bytesize ).join( '%' ).upcase
     end
   end
-
 
   # Convert a string from CamelCase to ruby_case.
   #
@@ -85,9 +90,12 @@ module Amazon
 	# Figure out where home is. The locations after HOME are for Windows.
 	# [ruby-core:12347]
 	#
-	home = ENV['AMAZONRCDIR'] ||
-	       ENV['HOME'] || ENV['HOMEDRIVE'] + ENV['HOMEPATH'] ||
-	       ENV['USERPROFILE']
+	hp = nil
+	if ENV.key?( 'HOMEDRIVE' ) && ENV.key?( 'HOMEPATH' )
+	  hp = ENV['HOMEDRIVE'] + ENV['HOMEPATH']
+	end
+	home = ENV['AMAZONRCDIR'] || ENV['HOME'] || hp || ENV['USERPROFILE']
+
 	user_rcfile = ENV['AMAZONRCFILE'] || '.amazonrc'
 
 	if home

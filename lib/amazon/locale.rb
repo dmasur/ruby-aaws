@@ -1,4 +1,4 @@
-# $Id: locale.rb,v 1.3 2008/06/07 17:28:51 ianmacd Exp $
+# $Id: locale.rb,v 1.4 2009/10/29 09:05:02 ianmacd Exp $
 #
 
 catch :done do
@@ -35,7 +35,7 @@ catch :done do
 
       # ISO 3166 codes of countries likely to want to shop in the *FR* locale.
       #
-      FR = %w[ fr ]
+      FR = %w[ be fr ]
 
       # ISO 3166 codes of countries likely to want to shop in the *JP* locale.
       #
@@ -43,7 +43,7 @@ catch :done do
 
       # ISO 3166 codes of countries likely to want to shop in the *UK* locale.
       #
-      UK = %w[ ad al ba be cy cz dk ee es fi fo gg gi gr gl hu ie im is it je
+      UK = %w[ ad al ba cy cz dk ee es fi fo gg gi gr gl hu ie im is it je
 	       li lt lu lv mk mt nl no pl pt ro se si sk sm uk ]
 
       # ISO 3166 codes of countries likely to want to shop in the *US* locale.

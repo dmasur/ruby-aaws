@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: customer_content_lookup1,v 1.3 2008/04/28 09:59:52 ianmacd Exp $
+# $Id: customer_content_lookup1,v 1.4 2010/02/20 16:49:12 ianmacd Exp $
 
 require 'amazon/aws/search'
 
@@ -8,12 +8,12 @@ include Amazon::AWS
 include Amazon::AWS::Search
 
 ccl = CustomerContentLookup.new( 'AJDWXANG1SYZP' )
-rg = ResponseGroup.new( 'CustomerReviews' )
+ccl.response_group = ResponseGroup.new( 'CustomerReviews' )
 
 req = Request.new
 req.locale = 'us'
 
-resp = req.search( ccl, rg )
+resp = req.search( ccl )
 
 review = resp.customer_content_lookup_response.customers.customer.customer_reviews.review[0]
 

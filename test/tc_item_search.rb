@@ -1,6 +1,6 @@
 # encoding: ASCII-8BIT
 #
-# $Id: tc_item_search.rb,v 1.6 2009/06/15 10:18:07 ianmacd Exp $
+# $Id: tc_item_search.rb,v 1.8 2010/02/20 23:57:26 ianmacd Exp $
 #
 # The encoding at the top of this file is necessary for Ruby 1.9, which will
 # otherwise choke with 'invalid multibyte char (US-ASCII)' when it reads the
@@ -20,7 +20,7 @@ class TestItemSearch < AWSTest
 
     str = 'Caf�'
     is = ItemSearch.new( 'Books', { 'Title' => str } )
-    response = @req.search( is, @rg )
+    response = @req.search( is )
 
     results = response.kernel
 
@@ -38,7 +38,7 @@ class TestItemSearch < AWSTest
 
     str = 'Café'
     is = ItemSearch.new( 'Books', { 'Title' => str } )
-    response = @req.search( is, @rg )
+    response = @req.search( is )
 
     results = response.kernel
 
@@ -48,27 +48,26 @@ class TestItemSearch < AWSTest
 
   end
 
+  def test_item_search_obsolete_rg_passing
+
+    # Manually set UTF-8 encoding.
+    #
+    @req.encoding = 'utf-8'
+
+    str = 'Café'
+    is = ItemSearch.new( 'Books', { 'Title' => str } )
+
+    assert_raise( Amazon::AWS::ObsolescenceError ) do
+      response = @req.search( is, @rg )
+    end
+
+  end
+
   def test_item_search_multiple_pages
 
     @req.encoding = 'utf-8'
     is = ItemSearch.new( 'Books', { 'Title' => 'programming' } )
-    responses = @req.search( is, @rg, 5 )
-
-    results = []
-    responses.each { |response| results += response.kernel }
-
-    # Ensure we got more than 10 results back.
-    #
-    assert( results.size > 10 )
-
-  end
-
-  def test_item_search_no_response_group
-
-    @req.encoding = 'utf-8'
-    is = ItemSearch.new( 'Books', { 'Title' => 'programming' } )
-    is.response_group = ResponseGroup.new( :Small )
-    responses = @req.search( is, nil, 5 )
+    responses = @req.search( is, 5 )
 
     results = []
     responses.each { |response| results += response.kernel }

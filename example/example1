@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: example1,v 1.5 2009/06/02 01:09:51 ianmacd Exp $
+# $Id: example1,v 1.6 2010/02/20 16:49:12 ianmacd Exp $
 
 require 'amazon/aws'
 require 'amazon/aws/search'
@@ -23,27 +23,18 @@ request  = Request.new( KEY_ID, ASSOCIATES_ID )
 
 # Create an item search object.
 #
-# is = ItemSearch.new( 'Books', { 'Keywords' => 'ruby programming' } )
 is = ItemSearch.new( 'Books', { 'Title' => 'ruby programming' } )
 
 # Create a response group object. Examples of response groups are 'Small',
 # 'Medium' and 'Large'. 'Large' returns all data about an item.
 #
-rg = ResponseGroup.new( 'Large' )
+is.response_group = ResponseGroup.new( 'Large' )
 
 # Search for the items, passing the result into a block.
 #
 nr_items = 0
 page_nr = 0
-response = request.search( is, rg, :ALL_PAGES ) do |page|
-# page.item_search_response[0].items.each do |item_set|
-#   item_set.item.each do |item|
-#     puts 'Found a product:'
-#     item.instance_variables.each do |iv|
-#      printf( "%s = %s\n", iv, item.instance_variable_get( iv ) )
-#     end
-#   end
-# end
+response = request.search( is, :ALL_PAGES ) do |page|
   printf( "Page %d had unique request ID %s.\n",
 	  page_nr += 1,
 	  page.item_search_response[0].operation_request[0].request_id )

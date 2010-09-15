@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: similarity_lookup1,v 1.1 2008/04/27 06:03:54 ianmacd Exp $
+# $Id: similarity_lookup1,v 1.2 2010/02/20 16:49:14 ianmacd Exp $
 
 require 'amazon/aws'
 require 'amazon/aws/search'
@@ -14,12 +14,12 @@ sl = SimilarityLookup.new( [ 'B000AE4QEC', 'B000051WBE' ] )
 
 # You can have multiple response groups.
 #
-rg = ResponseGroup.new( 'Medium', 'Offers', 'Reviews' )
+sl.response_group = ResponseGroup.new( 'Medium', 'Offers', 'Reviews' )
 
 req = Request.new
 req.locale = 'uk'
 
-resp = req.search( sl, rg )
+resp = req.search( sl )
 item_sets = resp.similarity_lookup_response[0].items
 
 item_sets.each do |item_set|

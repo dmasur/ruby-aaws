@@ -1,4 +1,4 @@
-# $Id: tc_serialisation.rb,v 1.2 2008/06/22 21:18:50 ianmacd Exp $
+# $Id: tc_serialisation.rb,v 1.3 2010/02/20 17:15:18 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -15,7 +15,9 @@ class AWSSerialisationTest < AWSTest
     # Serialise some results.
     #
     is = ItemSearch.new( 'Music', { 'Artist' => 'Voice Of The Beehive' } )
-    response = @req.search( is, @rg )
+    is.response_group = @rg
+
+    response = @req.search( is )
     results = response.kernel
 
     YAML.dump( results, results_file )
@@ -61,7 +63,9 @@ class AWSSerialisationTest < AWSTest
     # Serialise some results.
     #
     is = ItemSearch.new( 'Music', { 'Artist' => 'Voice Of The Beehive' } )
-    response = @req.search( is, @rg )
+    is.response_group = @rg
+
+    response = @req.search( is )
     results = response.kernel
 
     results_file.puts Marshal.dump( results )

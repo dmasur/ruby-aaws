@@ -1,4 +1,4 @@
-# $Id: tc_shopping_cart.rb,v 1.6 2009/03/27 14:00:22 ianmacd Exp $
+# $Id: tc_shopping_cart.rb,v 1.7 2009/10/29 13:37:56 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -103,7 +103,7 @@ class TestShoppingCart < AWSTest
     # Add some items.
     #
     cart.cart_add( :ASIN, 'B0014C2BL4', 1,
-		   { 'B00006BCKL' => 1,
+		   { 'B0007LYSAU' => 1,
 		     'B0001XLXYI' => 4 },
 		   { 'B0013F2M52' => 3,
 		     'B000HCPSR6' => 2 } )
@@ -114,7 +114,7 @@ class TestShoppingCart < AWSTest
     assert_equal( 8, items.size )
     item = items.find { |item| item.asin == 'B0014C2BL4'  }
     assert_equal( '1', item.quantity[0] )
-    item = items.find { |item| item.asin == 'B00006BCKL'  }
+    item = items.find { |item| item.asin == 'B0007LYSAU'  }
     assert_equal( '1', item.quantity[0] )
     item = items.find { |item| item.asin == 'B0001XLXYI'  }
     assert_equal( '4', item.quantity[0] )

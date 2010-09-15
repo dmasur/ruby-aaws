@@ -1,4 +1,102 @@
-$Id: NEWS,v 1.19 2009/06/15 23:48:49 ianmacd Exp $
+$Id: NEWS,v 1.21 2010/03/20 11:56:30 ianmacd Exp $
+
+
+0.8.1 - 2010-03-20
+------------------
+
+1. Operation#query_parameters was faulty, because it had accidentally been
+   defined outside the Operation class.
+
+   This meant that it wasn't in the correct namespace, causing libraries that
+   included Ruby/AWS to place that method in a namespace unreachable by
+   Ruby/AWS itself. Scripts that used Ruby/AWS without defining other modules
+   and classes were unaffected.
+
+2. In determining the home directory location of the .amazonrc file, we were
+   mistakenly concatenating ENV['HOMEDRIVE'] + ENV['HOMEPATH'] without first
+   checking that both were defined.
+
+3. The version of the AWS API used is now 2009-11-01, the latest at the time
+   of writing.
+
+
+0.8.0 - 2010-02-21
+------------------
+
+1. There is a new exception class, ObsolescenceError, which is raised when
+   an obsolete (i.e. no longer available) feature is used.
+
+2. The batching and multiple operation code was basically unmaintainable. I
+   could no longer comprehend it, so I removed and rewrote it from scratch.
+
+3. The implementation of MultipleOperation had a bug, whereby, if the second
+   operation was a batched operation, its parameters would overwrite those of
+   the first operation, leading to too few results returned.
+   
+   This meant that the maximum number of operations that could be encapsulated
+   in a MultipleOperation was 3, not the proper 4, and, even then, only when
+   the batched operation was supplied as the first parameter, not the second.
+
+4. There's a new ResponseGroup#response_group= method, the use of which is
+   transparent to the user. This makes it possible to assign response groups
+   to any kind of operation, even those encapsulated in batched and multiple
+   operations.
+
+5. MultipleOperation.new can now accept an arbitrary number of operations in
+   its parameter list. This list may also be supplied in the form of an array.
+
+   Amazon still impose a maximum of 2 operations encapsulated in a multiple
+   operation, but there's no reason for Ruby/AWS to mirror this. If Amazon
+   later raise the limit, Ruby/AWS will require no modification to take
+   advantage of the new situation.
+
+6. It's now possible to pass two batched operations to MultipleOperation.new,
+   allowing 4 base operations to be sent to AWS in a single request.
+   
+   Note that Amazon still impose a limit of no more than 2 operations of the
+   same class in a single request, which means that to achieve the maximum of
+   4 base operations in a MultipleOperation, one must encapsulate two batched
+   operations of different classes.
+
+7. A MultipleOperation that encapsulates only operations of the same class
+   will be commuted to a batch operation, resulting in the appropriate
+   response from Amazon.
+   
+   For example, a MultipleOperation encapsulating two ItemSearch operations
+   will return an item_search_response, not a multiple_operation_response. A
+   MultipleOperation encapsulating an ItemSearch and an ItemLookup, on the
+   other hand, will still return a multiple_operation_response.
+   
+   Previously, all multiple operations returned a multiple_operation_response.
+
+8. It's no longer possible to pass a list of response groups as the second
+   parameter to Search::Request#search. This facility was deprecated in
+   Ruby/AWS 0.7.0 and has been removed altogether in 0.8.0 (shunting nr_pages
+   into place as the second and final parameter).
+   
+   You must now directly assign to the operation's @response_group attribute.
+
+   In the case of a batched operation or a MultipleOperation, the response
+   groups will automatically propagate to the encapsulated operations.
+
+   An attempt to pass response groups as the second parameter to
+   Search::Request#search will now yield an ObsolescenceError exception.
+
+9. Attempting to retrieve ALL_PAGES of a multiple page list, such as a
+   WishList, didn't work. Only the first page was retrieved. This is because
+   TotalPages is nested one level deeper in the XML response yielded by this
+   type of operation. The same is true of MultipleOperation responses.
+
+10. Geolocation now associates Belgian clients with amazon.fr, rather than
+    amazon.co.uk. A Belgian client may not necessarily be a Francophone, but
+    this is probably still an improvement.
+
+11. The version of the AWS API used is now 2009-10-01, the latest at the time
+    of writing. ItemSearch::SEARCH_INDICES has been updated with the latest
+    additions, Lighting and Outlet.
+
+12. Ruby/AWS now depends on Ruby 1.8.6, not 1.8.7. This should make life
+    easier for some people, as many Linux distributions still come with 1.8.6.
 
 
 0.7.0 - 2009-06-16
@@ -87,7 +185,7 @@ $Id: NEWS,v 1.19 2009/06/15 23:48:49 ianmacd Exp $
 
 3. More and more people are moving to Ruby 1.9, so this release of Ruby/AWS
    has been tested to work with Ruby 1.9.1p129, the latest version at the time
-   of writing. Attaining ompatibility with 1.9 is a little tricky, because of
+   of writing. Attaining compatibility with 1.9 is a little tricky, because of
    the way in which strings are no longer treated as sequences of bytes in
    that version. Instead, they have knowledge of their encoding.
    

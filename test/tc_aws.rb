@@ -1,4 +1,4 @@
-# $Id: tc_aws.rb,v 1.12 2009/06/14 00:29:28 ianmacd Exp $
+# $Id: tc_aws.rb,v 1.15 2010/02/20 23:59:02 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -13,7 +13,7 @@ class TestAWSBasics < AWSTest
   CACHE_PATH = File.join( Dir.tmpdir, 'aws_cache' )
 
   def test_version
-    v = '1.8.7'
+    v = '1.8.6'
     assert( RUBY_VERSION >= v, "Ruby version is lower than #{v}." )
   end
 
@@ -65,17 +65,18 @@ class TestAWSBasics < AWSTest
 
     h = Help.new( :ResponseGroup, :Large )
     h_rg = ResponseGroup.new( :Help )
+    h.response_group = h_rg
 
     # Ensure that file is not cached when no cache is desired.
     #
     @req.cache = false
-    resp = @req.search( h, h_rg )
+    resp = @req.search( h )
     assert_equal( 0, Dir.glob( File.join( c.path, '*' ) ).size )
 
     # Ensure that file is cached when cache is desired.
     #
     @req.cache = c
-    resp = @req.search( h, h_rg )
+    resp = @req.search( h )
     assert_equal( 1, Dir.glob( File.join( c.path, '*' ) ).size )
 
     # Flush it away.
@@ -112,6 +113,11 @@ class TestAWSBasics < AWSTest
     # Test that config files are properly read from $AMAZONRC.
     #
     Dir.mktmpdir do |td|
+      # First save old locations, in case they're not the default.
+      #
+      old_rcdir = ENV['AMAZONRCDIR']
+      old_rc_file = ENV['AMAZONRCFILE']
+
       ENV['AMAZONRCDIR'] = td
       ENV['AMAZONRCFILE'] = '.user_defined_name'
       File.open( File.join( td, '.user_defined_name' ), 'w' ) do |tf|
@@ -120,8 +126,11 @@ class TestAWSBasics < AWSTest
 
       cf = Amazon::Config.new
       assert_equal( 'bar', cf['foo'] )
-      ENV['AMAZONRCDIR'] = nil
-      ENV['AMAZONRCFILE'] = nil
+
+      # Restore old locations.
+      #
+      ENV['AMAZONRCDIR'] = old_rcdir
+      ENV['AMAZONRCFILE'] = old_rc_file
     end
   end
 

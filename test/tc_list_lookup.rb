@@ -1,4 +1,4 @@
-# $Id: tc_list_lookup.rb,v 1.2 2009/06/03 22:33:04 ianmacd Exp $
+# $Id: tc_list_lookup.rb,v 1.4 2010/02/20 17:15:17 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -9,9 +9,11 @@ class TestListLookup < AWSTest
   def test_list_lookup
 
     @req.locale = 'us'
-    rg = ResponseGroup.new( :ListInfo )
     ll = ListLookup.new( '3TV12MGLOJI4R', :WishList )
-    response = @req.search( ll, rg )
+    ll_rg = ResponseGroup.new( :ListInfo )
+    ll.response_group = ll_rg
+
+    response = @req.search( ll )
 
     list = response.kernel
 
@@ -19,17 +21,20 @@ class TestListLookup < AWSTest
 
   end
 
-  def test_list_lookup_no_response_group
+  def test_list_lookup_all_pages
 
-    @req.locale = 'us'
-    ll = ListLookup.new( '3P722DU4KUPCP', 'Listmania' )
-    ll.response_group = ResponseGroup.new( :ListInfo, :Small )
-    response = @req.search( ll, nil )
+    @req.locale = 'uk'
+    ll = ListLookup.new( '1OPRRUVZVU9BE', 'WishList' )
+    ll_rg = ResponseGroup.new( 'ListInfo', 'Small' )
+    ll.response_group = ll_rg
 
-    list = response.kernel
+    response = @req.search( ll, :ALL_PAGES )
 
-    assert_equal( 'Computer History', list.list_name )
+    list = response.collect { |r| r.list_lookup_response[0].lists[0].list }
+    reported_items = list[0].total_items.to_i
+    items = list.collect { |page| page.list_item }.flatten
 
+    assert_equal( reported_items, items.size )
   end
 
   def test_list_lookup_class_method

@@ -1,4 +1,4 @@
-# $Id: tc_browse_node_lookup.rb,v 1.2 2009/06/02 00:39:43 ianmacd Exp $
+# $Id: tc_browse_node_lookup.rb,v 1.3 2010/02/20 17:15:17 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -10,26 +10,13 @@ class TestBrowseNodeLookup < AWSTest
 
     bnl = BrowseNodeLookup.new( 694212 )
     rg = ResponseGroup.new( :BrowseNodeInfo )
+    bnl.response_group = rg
 
-    response = @req.search( bnl, rg )
+    response = @req.search( bnl )
 
     results = response.kernel
 
     # Ensure we got some actual results back.
-    #
-    assert( results.size > 0 )
-
-  end
-
-  def test_browse_node_lookup_no_response_group
-
-    bnl = BrowseNodeLookup.new( 694212 )
-    bnl.response_group = ResponseGroup.new( :BrowseNodeInfo )
-    response = @req.search( bnl, nil )
-
-    results = response.kernel
-
-    # Ensure we got more than 10 results back.
     #
     assert( results.size > 0 )
 

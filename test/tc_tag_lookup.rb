@@ -1,4 +1,4 @@
-# $Id: tc_tag_lookup.rb,v 1.1 2009/06/03 23:20:37 ianmacd Exp $
+# $Id: tc_tag_lookup.rb,v 1.2 2010/02/20 17:15:18 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -10,21 +10,10 @@ class TestTagLookup < AWSTest
 
     @req.locale = 'us'
     tl = TagLookup.new( 'Awful' )
-    rg = ResponseGroup.new( :Tags, :TagsSummary )
-    response = @req.search( tl, rg )
+    tl_rg = ResponseGroup.new( :Tags, :TagsSummary )
+    tl.response_group = tl_rg
 
-    tag = response.kernel
-
-    assert_equal( '2005-11-21 16:46:53', tag.first_tagging.time )
-
-  end
-
-  def test_tag_lookup_no_response_group
-
-    @req.locale = 'us'
-    tl = TagLookup.new( 'Awful' )
-    tl.response_group = ResponseGroup.new( :Tags, :TagsSummary )
-    response = @req.search( tl, nil )
+    response = @req.search( tl )
 
     tag = response.kernel
 

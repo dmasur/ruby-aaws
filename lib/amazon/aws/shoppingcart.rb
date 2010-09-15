@@ -1,4 +1,4 @@
-# $Id: shoppingcart.rb,v 1.19 2008/09/21 22:17:32 ianmacd Exp $
+# $Id: shoppingcart.rb,v 1.20 2010/02/19 19:13:39 ianmacd Exp $
 #
 
 require 'amazon/aws/search'
@@ -89,8 +89,10 @@ module Amazon
 	  cc = CartCreate.new( id_type, item_id, quantity, merge_cart, nil,
 			       *more_items )
 
-	  @rg = ResponseGroup.new( 'Cart' )
-          cart = search( cc, @rg ).cart_create_response.cart
+	  @rg = ResponseGroup.new( :Cart )
+	  cc.response_group = @rg
+
+          cart = search( cc ).cart_create_response.cart
 
 	  @cart_id = cart.cart_id
 	  @hmac = cart.hmac
@@ -126,8 +128,10 @@ module Amazon
 	#
 	def cart_add(id_type, item_id, quantity=1, *more_items)
 	  ca = CartAdd.new( id_type, item_id, quantity, *more_items )
+	  ca.response_group = @rg
 	  ca.params.merge!( { 'CartId' => @cart_id, 'HMAC' => @hmac } )
-	  cart = search( ca, @rg ).cart_add_response.cart
+
+	  cart = search( ca ).cart_add_response.cart
 	  @cart_items = cart.cart_items.cart_item
 	end
 
@@ -296,8 +300,10 @@ module Amazon
 
 	  cm = CartModify.new( cart_item_id1, item_quantity1, save_for_later,
 			       *more_items )
+	  cm.response_group = @rg
 	  cm.params.merge!( { 'CartId' => @cart_id, 'HMAC' => @hmac } )
-	  cart = search( cm, @rg ).cart_modify_response.cart
+
+	  cart = search( cm ).cart_modify_response.cart
 
 	  if ci = cart.cart_items
 	    @cart_items = ci.cart_item
@@ -332,10 +338,11 @@ module Amazon
 	#
 	def cart_get(cart_id, hmac)
 	  cg = CartGet.new
+	  @rg = ResponseGroup.new( :Cart )
+	  cg.response_group = @rg
 	  cg.params.merge!( { 'CartId' => cart_id, 'HMAC' => hmac } )
 
-	  @rg = ResponseGroup.new( 'Cart' )
-	  cart = search( cg, @rg ).cart_get_response.cart
+	  cart = search( cg ).cart_get_response.cart
 
 	  @cart_id = cart.cart_id
 	  @hmac = cart.hmac
@@ -367,10 +374,14 @@ module Amazon
 	#
 	def cart_clear
 	  cc = CartClear.new
+	  cc.response_group = @rg
 	  cc.params.merge!( { 'CartId' => @cart_id, 'HMAC' => @hmac } )
-	  cart = search( cc, @rg ).cart_clear_response.cart
+
+	  cart = search( cc ).cart_clear_response.cart
+
 	  @cart_items = []
 	  @saved_for_later_items = []
+	
 	end
 
 	alias :clear :cart_clear
@@ -389,9 +400,23 @@ module Amazon
       end
 
 
+      class CartOperation < Operation  # :nodoc:
+
+	def query_parameters
+	  @params.merge!( { 'Operation' => @kind,
+			    'ResponseGroup' => @response_group } )
+	end
+
+	# Writer method is overridden in parent class, but we want access to
+	# the original here, so we unalias it in this class.
+	#
+	alias :response_group= :response_group_orig=
+      end
+
+
       # Worker class used by Cart#cart_create.
       #
-      class CartCreate < Operation  # :nodoc:
+      class CartCreate < CartOperation  # :nodoc:
 
         # Create a shopping-cart and add item(s) to it.
         #
@@ -411,6 +436,7 @@ module Amazon
 
 	    extra_item.each do |item|
 	      item_id, quantity = item
+
 	      case save_for_later
 	      when true
 	        items << { id_type    => item_id,
@@ -432,11 +458,18 @@ module Amazon
 
 	  more_items.flatten!
 
-	  # Force batch syntax if only a single item is being put in cart.
+	  # Force batch syntax.
 	  #
-	  params = batch_parameters( {}, *more_items )
-	  params.merge!( { 'MergeCart' => mc } ) if merge_cart
+	  params = {}
 
+	  more_items.each_with_index do |hash, index|
+	    hash.each do |k, v|
+	      shared = 'Item.%d.%s' % [ index + 1, k ]
+	      params[shared] = v
+	    end
+	  end
+
+	  params.merge!( { 'MergeCart' => mc } ) if merge_cart
           super( params )
         end
 
@@ -474,7 +507,7 @@ module Amazon
 
       # Worker class used by Cart#cart_clear.
       #
-      class CartClear < Operation  # :nodoc:
+      class CartClear < CartOperation  # :nodoc:
 
 	# Remove all items from a cart.
 	#
@@ -487,7 +520,7 @@ module Amazon
 
       # Worker class used by Cart#cart_get.
       #
-      class CartGet < Operation  # :nodoc:
+      class CartGet < CartOperation  # :nodoc:
 
 	# Fetch a cart.
 	#

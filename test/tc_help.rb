@@ -1,4 +1,4 @@
-# $Id: tc_help.rb,v 1.2 2009/06/02 00:39:23 ianmacd Exp $
+# $Id: tc_help.rb,v 1.3 2010/02/20 17:15:17 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -10,24 +10,8 @@ class TestHelp < AWSTest
 
     h = Help.new( 'ResponseGroup', 'Large' )
     rg = ResponseGroup.new( 'Help' )
-    response = @req.search( h, rg )
-
-    # Get a list of valid operations for the Large response group.
-    #
-    results = response.help_response[0].information.response_group_information.
-	      valid_operations.operation
-
-    # Ensure we got some actual results back.
-    #
-    assert( results.size > 0 )
-
-  end
-
-  def test_help_no_response_group
-
-    h = Help.new( 'ResponseGroup', 'Large' )
-    h.response_group = ResponseGroup.new( 'Help' )
-    response = @req.search( h, nil )
+    h.response_group = rg
+    response = @req.search( h )
 
     # Get a list of valid operations for the Large response group.
     #

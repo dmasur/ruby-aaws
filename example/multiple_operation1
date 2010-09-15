@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: multiple_operation1,v 1.2 2009/02/20 00:25:59 ianmacd Exp $
+# $Id: multiple_operation1,v 1.3 2010/02/20 16:49:13 ianmacd Exp $
 
 require 'amazon/aws/search'
 
@@ -22,13 +22,14 @@ is = ItemSearch.new( 'Books', { 'Title' => 'Ruby' } )
 
 mo = MultipleOperation.new( is, il )
 
-# You can have multiple response groups.
+# You can have multiple response groups and apply them to all encapsulated
+# operations.
 #
-rg = ResponseGroup.new( 'Medium', 'Offers', 'Reviews' )
+mo.response_group = ResponseGroup.new( 'Medium', 'Offers', 'Reviews' )
 
 req = Request.new
 req.locale = 'uk'
-resp = req.search( mo, rg )
+resp = req.search( mo )
 
 # Items returned by the ItemSearch.
 #

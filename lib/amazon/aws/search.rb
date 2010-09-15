@@ -1,4 +1,4 @@
-# $Id: search.rb,v 1.43 2009/06/14 22:28:27 ianmacd Exp $
+# $Id: search.rb,v 1.49 2010/03/19 19:28:19 ianmacd Exp $
 #
 
 module Amazon
@@ -52,7 +52,7 @@ module Amazon
 	# specified only in your <tt>~/.amazonrc</tt> configuration file.
 	#
 	# _associate_ is your
-	# Associates[http://docs.amazonwebservices.com/AWSECommerceService/2009-03-31/GSG/BecominganAssociate.html]
+	# Associates[http://docs.amazonwebservices.com/AWSECommerceService/2009-11-01/GSG/BecominganAssociate.html]
 	# tag (if any), _locale_ is the locale in which you which to work
 	# (*us* for amazon.com[http://www.amazon.com/], *uk* for
 	# amazon.co.uk[http://www.amazon.co.uk], etc.), _cache_ is whether or
@@ -203,7 +203,7 @@ module Amazon
 
 	# Add a timestamp to a request object's query string.
 	#
-	def timestamp
+	def timestamp # :nodoc:
 	  @query << '&Timestamp=%s' %
 	    [ Amazon.url_encode(
 		Time.now.utc.strftime( '%Y-%m-%dT%H:%M:%SZ' ) ) ]
@@ -214,7 +214,7 @@ module Amazon
 	# Add a signature to a request object's query string. This implicitly
 	# also adds a timestamp.
 	#
-	def sign
+	def sign # :nodoc:
 	  return false unless DIGEST_SUPPORT
 
 	  timestamp
@@ -249,52 +249,60 @@ module Amazon
 	# _ItemSearch_, _ItemLookup_, etc. It may also be a _MultipleOperation_
 	# object.
 	#
-	# _response_group_, if supplied, is a set of one or more response
-	# groups to use in combination with _operation_ for the purpose of
-	# determining which data sets AWS should return.
-	#
-	# If _response_group_ is *nil*, Ruby/AWS will instead use the response
-	# groups specified by the _@response_group_ attribute of _operation_.
-	# That is now the preferred way of specifying response groups to use
-	# with a given operation. The _response_group_ parameter may later be
-	# removed from this method altogether.
-	#
-	# If _response_group_ is given, it will apply to all sub-operations of
-	# _operation_, if _operation_ is of class MultipleOperation. To use a
-	# different set of response groups for each sub-operation, you should
-	# assign to the _@response_group_ attribute of each of them before
-	# instantiating a MultipleOperation to combine them.
+	# In versions of Ruby/AWS up to prior to 0.8.0, the second parameter to
+	# this method was _response_group_. This way of passing response
+	# groups has been deprecated since 0.7.0 and completely removed in
+	# 0.8.0. To pair a set of response groups with an operation, assign
+	# directly to the operation's @response_group attribute.
 	#
 	# _nr_pages_ is the number of results pages to return. It defaults to
 	# <b>1</b>. If a higher number is given, pages 1 to _nr_pages_ will be
 	# returned. If the special value <b>:ALL_PAGES</b> is given, all
 	# results pages will be returned.
 	#
-	# The maximum page number that can be returned for each type of
-	# operation is documented in the AWS Developer's Guide:
+	# Note that _ItemLookup_ operations can use several different
+	# pagination parameters. An _ItemLookup_ will typically return just
+	# one results page containing a single product, but <b>:ALL_PAGES</b>
+	# can still be used to apply the _OfferPage_ parameter to paginate
+	# through multiple pages of offers.
 	#
-	# http://docs.amazonwebservices.com/AWSECommerceService/2009-03-31/DG/index.html?MaximumNumberofPages.html
+	# Similarly, a single product may have multiple pages of reviews
+	# available. In such a case, it is up to the user to manually supply
+	# the _ReviewPage_ parameter and an appropriate value.
 	#
-	# Note that _ItemLookup_ operations can use three separate pagination
-	# parameters. Ruby/AWS, however, uses _OfferPage_ for the purposes of
-	# returning multiple pages.
+	# In the same vein, variations can be returned by using the
+	# _VariationPage_ parameter.
 	#
-	# If operation is of class _MultipleOperation_, the operations
-	# specified within will return only the first page, regardless of
-	# whether a higher number of pages is requested.
+	# The pagination parameters supported by each type of operation,
+	# together with the maximum page number that can be retrieved for each
+	# type of data, are # documented in the AWS Developer's Guide:
+	#
+	# http://docs.amazonwebservices.com/AWSECommerceService/2009-11-01/DG/index.html?MaximumNumberofPages.html
+	#
+	# The pagination parameter used by <b>:ALL_PAGES</b> can be looked up
+	# in the Amazon::AWS::PAGINATION hash.
+	#
+	# If _operation_ is of class _MultipleOperation_, the operations
+	# encapsulated within will return only the first page of results,
+	# regardless of whether a higher number of pages is requested.
 	#
 	# If a block is passed to this method, each successive page of results
 	# will be yielded to the block.
 	#
-	def search(operation, response_group=nil, nr_pages=1)
-	  response_group ||=
-	    operation.response_group || ResponseGroup.new( :Large )
-
+	def search(operation, nr_pages=1)
 	  parameters = Amazon::AWS::SERVICE.
 			 merge( { 'AWSAccessKeyId' => @key_id,
 				  'AssociateTag'   => @tag } ).
-			 merge( operation.params ).
-			 merge( response_group.params )
+			 merge( operation.query_parameters )
+
+	  if nr_pages.is_a? Amazon::AWS::ResponseGroup
+	    raise ObsolescenceError, 'Request#search method no longer accepts response_group parameter.'
+	  end
+
+	  # Pre-0.8.0 user code may have passed *nil* as the second parameter,
+	  # in order to use the @response_group of the operation.
+	  #
+	  nr_pages ||= 1
 
 	  # Check to see whether a particular version of the API has been
 	  # requested. If so, overwrite Version with the new value.
@@ -366,13 +374,16 @@ module Amazon
 	    end
 	  end
 
-	  # FIXME: This doesn't work if a MultipleOperation was used, because
-	  # <TotalPages> will be nested one level deeper. It's therefore
-	  # currently only possible to return the first page of results
-	  # for operations combined in a MultipleOperation.
-	  #
 	  if doc.elements['*/*[2]/TotalPages']
 	    total_pages = doc.elements['*/*[2]/TotalPages'].text.to_i
+
+	  # FIXME: ListLookup and MultipleOperation (and possibly others) have
+	  # TotalPages nested one level deeper. I should take some time to
+	  # ensure that all operations that can return multiple results pages
+	  # are covered by either the 'if' above or the 'elsif' here.
+	  #
+	  elsif doc.elements['*/*[2]/*[2]/TotalPages']
+	    total_pages = doc.elements['*/*[2]/*[2]/TotalPages'].text.to_i
 	  else
 	    total_pages = 1
 	  end

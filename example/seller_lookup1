@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: seller_lookup1,v 1.1 2008/04/27 10:10:07 ianmacd Exp $
+# $Id: seller_lookup1,v 1.2 2010/02/20 16:49:13 ianmacd Exp $
 
 require 'amazon/aws/search'
 
@@ -19,12 +19,12 @@ def display_properties(root, indent=0)
 end
   
 sl = SellerLookup.new( 'A3QFR0K2KCB7EG' )
-sl_rg = ResponseGroup.new( 'Seller' )
+sl.response_group = ResponseGroup.new( 'Seller' )
 
 req = Request.new
 req.locale = 'us'
 
-resp = req.search( sl, sl_rg ).seller_lookup_response
+resp = req.search( sl ).seller_lookup_response
 
 seller = resp.sellers.seller
 

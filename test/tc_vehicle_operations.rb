@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: tc_vehicle_operations.rb,v 1.1 2009/02/19 15:50:03 ianmacd Exp $
+# $Id: tc_vehicle_operations.rb,v 1.2 2010/02/20 17:15:19 ianmacd Exp $
 
 require 'test/unit'
 require './setup'
@@ -13,8 +13,10 @@ class TestVehicles < AWSTest
     # Get all cars for year 2008.
     #
     vs = VehicleSearch.new( { 'Year' => 2008 } )
-    rg = ResponseGroup.new( 'VehicleMakes' )
-    response = @req.search( vs, rg )
+    vs_rg = ResponseGroup.new( 'VehicleMakes' )
+    vs.response_group = vs_rg
+
+    response = @req.search( vs )
 
     makes = response.vehicle_search_response[0].vehicle_years[0].
 	    vehicle_year[0].vehicle_makes[0].vehicle_make
@@ -27,8 +29,10 @@ class TestVehicles < AWSTest
     #
     vs = VehicleSearch.new( { 'Year' => 2008,
 			      'MakeId' => make_id } )
-    rg = ResponseGroup.new( 'VehicleModels' )
-    response = @req.search( vs, rg )
+    vs_rg = ResponseGroup.new( 'VehicleModels' )
+    vs.response_group = vs_rg
+
+    response = @req.search( vs )
 
     models = response.vehicle_search_response[0].vehicle_years[0].
 	     vehicle_year[0].vehicle_makes[0].vehicle_make[0].
@@ -42,8 +46,10 @@ class TestVehicles < AWSTest
     vs = VehicleSearch.new( { 'Year' => 2008,
 			      'MakeId' => make_id,
 			      'ModelId' => model_id } )
-    rg = ResponseGroup.new( 'VehicleTrims' )
-    response = @req.search( vs, rg )
+    vs_rg = ResponseGroup.new( 'VehicleTrims' )
+    vs.response_group = vs_rg
+
+    response = @req.search( vs )
 
     trims = response.vehicle_search_response[0].vehicle_years[0].
 	    vehicle_year[0].vehicle_makes[0].vehicle_make[0].
@@ -56,8 +62,10 @@ class TestVehicles < AWSTest
 			      'MakeId' => make_id,
 			      'ModelId' => model_id,
 			      'TrimId' => trim_id } )
-    rg = ResponseGroup.new( 'VehicleOptions' )
-    response = @req.search( vs, rg )
+    vs_rg = ResponseGroup.new( 'VehicleOptions' )
+    vs.response_group = vs_rg
+
+    response = @req.search( vs )
 
     options = response.vehicle_search_response[0].vehicle_years[0].
 	      vehicle_year[0].vehicle_makes[0].vehicle_make[0].
@@ -74,8 +82,10 @@ class TestVehicles < AWSTest
     vps = VehiclePartSearch.new( 2008, make_id, model_id,
 				 { 'TrimId' => trim_id,
 				   'EngineId' => engine_id } )
-    rg = ResponseGroup.new( 'VehicleParts' )
-    response = @req.search( vps, rg )
+    vps_rg = ResponseGroup.new( 'VehicleParts' )
+    vps.response_group = vps_rg
+
+    response = @req.search( vps )
 
     parts = response.vehicle_part_search_response[0].vehicle_parts[0].part
     assert( parts.size > 0 )
@@ -94,8 +104,10 @@ class TestVehicles < AWSTest
 				     'ModelId' => model_id,
 				     'TrimId' => trim_id } )
 
-      rg = ResponseGroup.new( 'VehiclePartFit' )
-      response = @req.search( vpl, rg )
+      vpl_rg = ResponseGroup.new( 'VehiclePartFit' )
+      vpl.response_group = vpl_rg
+
+      response = @req.search( vpl )
 
       fit = response.vehicle_part_lookup_response[0].vehicle_parts[0].part.
             vehicle_part_fit.is_fit

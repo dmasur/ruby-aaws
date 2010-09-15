@@ -1,4 +1,4 @@
-# $Id: tc_list_search.rb,v 1.2 2009/06/03 22:32:42 ianmacd Exp $
+# $Id: tc_list_search.rb,v 1.3 2010/02/20 17:15:18 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -9,26 +9,15 @@ class TestListSearch < AWSTest
   def test_list_search
 
     @req.locale = 'us'
-    rg = ResponseGroup.new( :ListInfo )
     ls = ListSearch.new( 'WishList', { 'Name' => 'Peter Duff' } )
-    response = @req.search( ls, rg )
+    ls_rg = ResponseGroup.new( :ListInfo )
+    ls.response_group = ls_rg
+
+    response = @req.search( ls )
 
     lists = response.kernel
 
-    assert( lists.collect { |l| l.list_id }.include?( '18Y9QEW3A4SRY' ) )
-
-  end
-
-  def test_list_search_no_response_group
-
-    @req.locale = 'us'
-    ls = ListSearch.new( 'WishList', { 'Name' => 'Peter Duff' } )
-    ls.response_group = ResponseGroup.new( :ListMinimum )
-    response = @req.search( ls, nil )
-
-    lists = response.kernel
-
-    assert( lists.collect { |l| l.list_id }.include?( '18Y9QEW3A4SRY' ) )
+    assert( lists.collect { |l| l.list_id }.flatten.include?( '1L88A4AXYF5QR' ) )
 
   end
 

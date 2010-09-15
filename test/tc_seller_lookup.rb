@@ -1,4 +1,4 @@
-# $Id: tc_seller_lookup.rb,v 1.1 2009/06/03 09:53:02 ianmacd Exp $
+# $Id: tc_seller_lookup.rb,v 1.2 2010/02/20 17:15:18 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -9,19 +9,9 @@ class TestSellerLookup < AWSTest
   def test_seller_lookup
 
     sl = SellerLookup.new( 'A3QFR0K2KCB7EG' )
-    rg = ResponseGroup.new( 'Seller' )
-    response = @req.search( sl, rg )
+    sl_rg = ResponseGroup.new( 'Seller' )
+    sl.response_group = sl_rg
 
-    seller = response.kernel
-
-    assert_equal( 'wherehouse', seller.nickname )
-
-  end
-
-  def test_seller_lookup_no_response_group
-
-    sl = SellerLookup.new( 'A3QFR0K2KCB7EG' )
-    sl.response_group = ResponseGroup.new( :Seller )
     response = @req.search( sl )
 
     seller = response.kernel

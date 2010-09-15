@@ -1,4 +1,4 @@
-# $Id: aws.rb,v 1.118 2009/06/15 23:51:53 ianmacd Exp $
+# $Id: aws.rb,v 1.130 2010/03/20 11:58:50 ianmacd Exp $
 #
 #:include: ../../README.rdoc
 
@@ -14,7 +14,7 @@ module Amazon
     require 'uri'
 
     NAME = '%s/%s' % [ Amazon::NAME, 'AWS' ]
-    VERSION = '0.7.0'
+    VERSION = '0.8.1'
     USER_AGENT = '%s %s' % [ NAME, VERSION ]
 
     # Default Associate tags to use per locale.
@@ -32,7 +32,7 @@ module Amazon
     # changed via the user configuration file.
     #
     SERVICE = { 'Service' => 'AWSECommerceService',
-		'Version' => '2009-03-31'
+		'Version' => '2009-11-01'
     }
 
     # Maximum number of 301 and 302 HTTP responses to follow, should Amazon
@@ -41,13 +41,13 @@ module Amazon
     MAX_REDIRECTS = 3
 
     # Maximum number of results pages that can be retrieved for a given
-    # search operation, using whichever pagination parameter is relevant to
-    # that type of operation.
+    # search operation, using whichever pagination parameter is appropriate
+    # for that kind of operation.
     #
     PAGINATION = {
       'ItemSearch'	      => { 'parameter' => 'ItemPage',
 						  'max_page' => 400 },
-      'ItemLookup'	      => { 'paraneter' => 'OfferPage',
+      'ItemLookup'	      => { 'parameter' => 'OfferPage',
 						  'max_page' => 100 },
       'ListLookup'	      => { 'parameter' => 'ProductPage',
 						  'max_page' =>  30 },
@@ -81,6 +81,11 @@ module Amazon
     # Exception class for faulty batch operations.
     #
     class BatchError < AmazonError; end
+
+
+    # Exception class for obsolete features.
+    #
+    class ObsolescenceError < AmazonError; end
 
 
     class Endpoint
@@ -612,20 +617,45 @@ module Amazon
       def initialize(parameters)
 
 	op_kind = self.class.to_s.sub( /^.*::/, '' )
-	unless OPERATIONS.include?( op_kind )
-	  raise "Bad operation: #{op_kind}"
-	end
-	#raise 'Too many parameters' if parameters.size > 10
 
-	@kind = op_kind
-	@params = { 'Operation' => op_kind }.merge( parameters )
+	raise "Bad operation: #{op_kind}" unless OPERATIONS.include?( op_kind )
 
 	if ResponseGroup::DEFAULT.key?( op_kind )
-	  @response_group =
+	  response_group =
 	    ResponseGroup.new( ResponseGroup::DEFAULT[op_kind] )
 	else
-	  @response_group = nil
+	  response_group = nil
 	end
+
+	if op_kind =~ /^Cart/
+	  @params = parameters
+	else
+	  @params = Hash.new { |hash, key| hash[key] = [] }
+	  @response_group = Hash.new { |hash, key| hash[key] = [] }
+
+	  unless op_kind == 'MultipleOperation'
+	    @params[op_kind] = [ parameters ]
+	    @response_group[op_kind] = [ response_group ]
+	  end
+	end
+
+	@kind = op_kind
+      end
+
+
+      # Make sure we can still get to the old @response_group= writer method.
+      #
+      alias :response_group_orig= :response_group=
+
+      # If the user assigns to @response_group, we need to set this response
+      # group for any and all operations that may have been batched.
+      #
+      def response_group=(rg) # :nodoc:
+        @params.each_value do |op_arr|
+          op_arr.each do |op|
+            op['ResponseGroup'] = rg
+          end
+        end
       end
 
 
@@ -633,7 +663,7 @@ module Amazon
       # _operations_ should be either an operation of the same class as *self*
       # or an array of such operations.
       #
-      # If you need to batch operations from different classes, use a
+      # If you need to batch operations of different classes, use a
       # MultipleOperation instead.
       #
       # Example:
@@ -649,160 +679,128 @@ module Amazon
       #
       def batch(*operations)
 
-	# Remove the Operation parameter to avoid batch syntax being applied.
-	# We'll readd it at the end.
-	#
-	op_type = @params.delete( 'Operation' )
-
 	operations.flatten.each do |op|
 
 	  unless self.class == op.class
-	    raise BatchError, "You can't batch different classes of operation. Use class MultipleOperation."
+	    raise BatchError, "You can't batch operations of different classes. Use class MultipleOperation."
 	  end
 
-	  # Remove the Operation parameter.
+	  # Add the operation's single element array containing the parameter
+	  # hash to the array.
 	  #
-	  op.params.delete( 'Operation' )
+	  @params[op.kind].concat( op.params[op.kind] )
 
-	  # Apply batch syntax.
+	  # Add the operation's response group array to the array.
 	  #
-	  @params = batch_parameters( @params, op.params )
-	  @response_group.params = batch_response_groups( op )
+	  @response_group[op.kind].concat( op.response_group[op.kind] )
 	end
 
-	# Reinstate the Operation parameter.
-	#
-	@params.merge!( { 'Operation' => op_type } )
       end
 
 
-      # Convert parameters to batch format, e.g. ItemSearch.1.Title.
+      # Return a hash of operation parameters and values, possibly converted to
+      # batch syntax, suitable for encoding in a query.
       #
-      def batch_parameters(params, *b_params)  # :nodoc:
+      def query_parameters  # :nodoc:
+        query = {}
 
-	@index ||= 1
+        @params.each do |op_kind, ops|
 
-	unless b_params.empty?
-	  op_str = @kind || self.class.to_s.sub( /^.*::/, '' )
+          # If we have only one type of operation and only one operation of
+	  # that type, return that one in non-batched syntax.
+          #
+          if @params.size == 1 && @params[op_kind].size == 1
+            return { 'Operation' => op_kind,
+          	   'ResponseGroup' => @response_group[op_kind][0] }.
+          	   merge( @params[op_kind][0] )
+          end
 
-	  # Fudge the operation string if we're dealing with a shopping cart.
-	  #
-	  op_str = 'Item' if op_str =~ /^Cart/
+          # Otherwise, use batch syntax.
+          #
+          ops.each_with_index do |op, op_index|
 
-	  all_parameters = []
+            # Make sure we use a response group of some kind.
+            #
+            shared = '%s.%d.ResponseGroup' % [ op_kind, op_index + 1 ]
+            query[shared] = op['ResponseGroup'] ||
+          		  ResponseGroup::DEFAULT[op_kind]
 
-	  # Shopping carts pass an empty hash in params, so we have to ditch
-	  # params in such a case to prevent the batch index from being off by
-	  # one.
-	  #
-	  all_parameters.concat( [ params ] ) unless params.empty?
-	  all_parameters.concat( b_params )
+            # Add all of the parameters to the query hash.
+            #
+            op.each do |k, v|
+              shared = '%s.%d.%s' % [ op_kind, op_index + 1, k ]
+              query[shared] = v
+            end
+          end
+        end
 
-	  params = {}
-	  index = 0
-
-	  all_parameters.each do |hash|
-
-	    next if hash.empty?
-
-	    # Don't batch an already batched hash.
-	    #
-	    if hash.to_a[0][0] =~ /^.+\..+\..+$/
-	      params.merge!( hash )
-	      @index += 1
-	      next
-	    end
-
-	    hash.each do |tag, val|
-	      shared_param = '%s.%d.%s' % [ op_str, @index + index, tag ]
-	      params[shared_param] = val
-	    end
-
-	    index += 1
-	  end
-
-	  @index += b_params.size
-
-	end
-
-	params
+        # Add the operation list.
+        #
+        { 'Operation' => @params.keys.join( ',' ) }.merge( query )
       end
 
     end
 
 
-    # Convert response groups to batch format, e.g. ItemSearch.1.ResponseGroup.
-    #
-    def batch_response_groups(operation)
-
-      rg = {}
-      op_count = Hash.new( 1 )
-
-      [ self, operation ].each do |op|
-	rg_hash = op.response_group.params
-
-	if m = rg_hash.to_a[0][0].match( /^(.+)\..+\..+$/ )
-	  # This hash is already in batch format.
-	  #
-	  rg.merge!( rg_hash )
-
-	  # Keep a record of the highest index currently in use for each type
-	  # of operation.
-	  #
-	  rg_hash.each do |key, val|
-	    op_kind, index = key.match( /^(.+)\.(\d+)\..+$/ )[1, 2]
-	    if index.to_i == op_count[op_kind]
-	      op_count[op_kind] += 1
-	    end
-	  end
-
-	else
-	  # Convert hash to batch format.
-	  #
-	  rg_hash.each_value do |val|
-	    rg_str = '%s.%d.ResponseGroup' % [ op.kind, op_count[op.kind] ]
-	    op_count[op.kind] += 1
-	    rg[rg_str] = val
-	  end
-	end
-
-      end
-
-     rg 
-    end
-
-
-    # This class can be used to merge multiple operations into a single
+    # This class can be used to encapsulate multiple operations in a single
     # operation for greater efficiency.
     #
     class MultipleOperation < Operation
 
-      # This allows you to take two Operation objects and combine them to form
-      # a single object, which can then be used to perform a single request to
-      # AWS. This allows for greater efficiency, reducing the number of
-      # requests sent to AWS.
+      # This allows you to take multiple Operation objects and encapsulate them
+      # to form a single object, which can then be used to send a single
+      # request to AWS. This allows for greater efficiency, reducing the number
+      # of requests sent to AWS.
       #
       # AWS currently imposes a limit of two operations when encapsulating
-      # operations in a multiple operation.
+      # operations in a multiple operation. Note, however, that one or both of
+      # these operations may be a batched operation. Combining two batched
+      # operations in this way makes it possible to send as many as four
+      # simple operations to AWS in a single MultipleOperation request.
       #
-      # <em>operation1</em> and <em>operation2</em> are both objects from a
-      # subclass of Operation, such as ItemSearch, ItemLookup, etc.
+      # _operations_ is an array of objects subclassed from Operation, such as
+      # ItemSearch, ItemLookup, etc.
       #
       # Please note the following implementation details:
       #
-      # - If you use the _response_group_ parameter of Search::Request#search
-      #   to pass the list of response groups, it will apply to both
+      # - As mentioned above, Amazon currently imposes a limit of two
+      #   operations encapsulated in a MultipleOperation.
+      #
+      # - To use a different set of response groups for each encapsulated
+      #   operation, assign to each operation's @response_group attribute prior
+      #   to encapulation in a MultipleOperation.
+      #
+      # - To use the same set of response groups for all encapsulated
+      #   operations, you can directly assign to the @response_group attribute
+      #   of the MultipleOperation. This will propagate to the encapsulated
       #   operations.
       #
-      #   If you want to use a different response group set for each
-      #   operation, you should assign the relevant groups to the
-      #   @response_group attribute of each Operation object. You must do this
-      #   *before* you instantiate the MultipleOperation.
-      #
       # - One or both operations may have multiple results pages available,
-      #   but only the first page is returned. If you need the subsequent
-      #   pages, perform the operations separately, not as part of a
-      #   multiple operation.
+      #   but only the first page will be returned by your requests. If you
+      #   need subsequent pages, you must perform the operations separately.
+      #   It is not possible to page through the results of a MultipleOperation
+      #   response.
+      #
+      # - In this implementation, an error in any of the constituent operations
+      #   will cause an exception to be thrown. If you don't want partial
+      #   success (i.e. the success of fewer than all of the operations) to be
+      #   treated as failure, you should perform the operations separately.
+      #
+      # - MultipleOperation is intended for encapsulation of objects from
+      #   different classes, e.g. an ItemSearch and an ItemLookup. If you just
+      #   want to batch operations of the same class, Operation#batch
+      #   provides an alternative.
+      #
+      #   In fact, if you create a MultipleOperation encapsulating objects of
+      #   the same class, Ruby/AWS will actually apply simple batch syntax to
+      #   your request, so it amounts to the same as using Operation#batch.
+      #
+      # - Although all of the encapsulated operations can be batched
+      #   operations, Amazon places a limit of two on the number of same-class
+      #   operations that can be carried out in any one request. This means
+      #   that you cannot encapsulate two batched requests from the same
+      #   class, so attempting, for example, four ItemLookup operations via
+      #   two batched ItemLookup operations will not work.
       #
       # Example:
       #
@@ -812,48 +810,28 @@ module Amazon
       #  is.response_group = ResponseGroup.new( :Large )
       #  il.response_group = ResponseGroup.new( :Small )
       #  mo = MultipleOperation.new( is, il )
-      #
-      # As you can see, the operations that are combined as a
-      # MultipleOperation do not have to belong to the same class. In the
-      # above example, we compose a multiple operation consisting of an
-      # ItemSearch and an ItemLookup.
-      #
-      # If you want to batch operations belonging to the same class,
-      # Operation#batch provides an alternative.
       # 
-      def initialize(operation1, operation2)
+      def initialize(*operations)
 
-	op_kind = [ operation1.kind, operation2.kind ].join( ',' )
+	# Start with an empty parameter hash.
+	#
+	super( {} )
+	
+	# Start off with the first operation and duplicate the original's
+	# parameters to avoid accidental in-place modification.
+	#
+	operations.flatten!
+	@params = operations.shift.params.freeze.dup
 
-	# Duplicate Operation objects and remove their Operation parameter.
-	# 
-	op1 = operation1.dup
-	op1.params.delete( 'Operation' )
-
-	op2 = operation2.dup
-	op2.params.delete( 'Operation' )
-
-	if op1.class == op2.class
-
-	  # If both operations are of the same type, we combine the parameters
-	  # of both.
-	  #
-	  b_params = op1.batch_parameters( op1.params, op2.params )
-	else
-
-	  # We have to convert the parameters to batch format.
-	  #
-	  bp1 = op1.batch_parameters( op1.params, {} )
-	  bp2 = op2.batch_parameters( op2.params, {} )
-	  b_params = bp1.merge( bp2 )
+	# Add subsequent operations' parameter hashes, protecting them
+	# against accidental in-place modification.
+	#
+	operations.each do |op|
+	  op.params.freeze.each do |op_kind, op_arr|
+	    @params[op_kind].concat( op_arr )
+	  end
 	end
 
-	params = { 'Operation' => op_kind }.merge( b_params )
-	super( params )
-
-	@response_group = ResponseGroup.new( [] )
-	@response_group.params.delete( 'ResponseGroup' )
-	@response_group.params = op1.batch_response_groups( op2 )
       end
       
     end
@@ -899,8 +877,7 @@ module Amazon
       #
       # According to the AWS documentation:
       #
-      # - *All* searches through all indices (but currently exists only in the
-      #   *US* locale).
+      # - *All* searches through all indices.
       # - *Blended* combines Apparel, Automotive, Books, DVD, Electronics,
       #   GourmetFood, Kitchen, Music, PCHardware, PetSupplies, Software,
       #   SoftwareVideoGames, SportingGoods, Tools, Toys, VHS and VideoGames.
@@ -933,6 +910,7 @@ module Amazon
 	Jewelry
 	KindleStore
 	Kitchen
+	Lighting
 	Magazines
 	Merchants
 	Miscellaneous
@@ -942,6 +920,7 @@ module Amazon
 	MusicTracks
 	OfficeProducts
 	OutdoorLiving
+	Outlet
 	PCHardware
 	PetSupplies
 	Photo
@@ -1402,9 +1381,6 @@ module Amazon
 		  'VehicleSearch'	  => :VehicleMakes
       }
 
-      attr_reader :list
-      attr_accessor :params
-
       # Define a set of one or more response groups to be applied to items
       # retrieved by an AWS operation.
       #
@@ -1413,8 +1389,14 @@ module Amazon
       #  rg = ResponseGroup.new( 'Medium', 'Offers', 'Reviews' )
       #
       def initialize(*rg)
-	@list = rg
-	@params = { 'ResponseGroup' => @list.join( ',' ) }
+	@list = rg.join( ',' )
+      end
+
+
+      # We need a form we can interpolate into query strings.
+      #
+      def to_s	# :nodoc:
+	@list
       end
 
     end
@@ -1476,7 +1458,7 @@ module Amazon
     # response group and then retry the operation using that instead.
 
 
-    # Ontain a list of all subclasses of the Operation class.
+    # Obtain a list of all subclasses of the Operation class.
     #
     classes =
       ObjectSpace.enum_for( :each_object, class << Operation; self; end ).to_a

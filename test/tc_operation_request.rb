@@ -1,4 +1,4 @@
-# $Id: tc_operation_request.rb,v 1.1 2008/05/19 10:17:26 ianmacd Exp $
+# $Id: tc_operation_request.rb,v 1.2 2010/02/20 17:15:18 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -8,12 +8,18 @@ class TestOperationRequest < AWSTest
 
   def test_operation_request
     is = ItemSearch.new( 'Books', { 'Title' => 'Ruby' } )
-    response = @req.search( is, ResponseGroup.new( 'Request' ) )
+    is_rg = ResponseGroup.new( 'Request' )
+    is.response_group = is_rg
+
+    response = @req.search( is )
 
     # Same again with Symbols.
     #
     is = ItemSearch.new( :Books, { :Title => 'Ruby' } )
-    response = @req.search( is, ResponseGroup.new( :Request ) )
+    is_rg = ResponseGroup.new( :Request )
+    is.response_group = is_rg
+
+    response = @req.search( is )
  
     # Make sure undocumented AWSObject#results provides an accurate shortcut
     # to the most interesting part of the data returned by AWS.

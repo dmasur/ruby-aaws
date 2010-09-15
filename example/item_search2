@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: item_search2,v 1.4 2008/04/28 09:59:39 ianmacd Exp $
+# $Id: item_search2,v 1.5 2010/02/20 16:49:13 ianmacd Exp $
 
 require 'amazon/aws/search'
 
@@ -10,12 +10,12 @@ include Amazon::AWS::Search
 # We can use symbols instead of string.
 #
 is = ItemSearch.new( :Music, { :Artist => 'Stranglers' } )
-rg = ResponseGroup.new( :Medium )
+is.response_group = ResponseGroup.new( :Medium )
 
 req = Request.new
 req.locale = 'uk'
 
-resp = req.search( is, rg, :ALL_PAGES )
+resp = req.search( is, :ALL_PAGES )
 
 # Use of :ALL_PAGES means an array of responses is returned, one per page.
 #

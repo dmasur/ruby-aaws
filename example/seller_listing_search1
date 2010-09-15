@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: seller_listing_search1,v 1.4 2008/04/28 10:00:28 ianmacd Exp $
+# $Id: seller_listing_search1,v 1.5 2010/02/20 16:49:13 ianmacd Exp $
 
 require 'amazon/aws/search'
 
@@ -9,13 +9,14 @@ include Amazon::AWS::Search
 
 seller_id = 'AP8U6Y3PYQ9VO'
 artist = 'Killing Joke'
+
 sls = SellerListingSearch.new( seller_id, { 'Keywords' => artist } )
-sls_rg = ResponseGroup.new( 'SellerListing' )
+sls.response_group = ResponseGroup.new( 'SellerListing' )
 
 req = Request.new
 req.locale = 'uk'
 
-resp = req.search( sls, sls_rg )
+resp = req.search( sls )
 
 # Yawn. This is verbose.
 #

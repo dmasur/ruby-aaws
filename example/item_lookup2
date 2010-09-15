@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: item_lookup2,v 1.4 2009/02/20 00:13:38 ianmacd Exp $
+# $Id: item_lookup2,v 1.5 2010/02/20 16:49:12 ianmacd Exp $
 
 require 'amazon/aws'
 require 'amazon/aws/search'
@@ -22,12 +22,12 @@ il.batch( il2 )
 
 # You can have multiple response groups.
 #
-rg = ResponseGroup.new( 'Medium', 'Offers', 'Reviews' )
+il.response_group = ResponseGroup.new( 'Medium', 'Offers', 'Reviews' )
 
 req = Request.new
 req.locale = 'us'
 
-resp = req.search( il, rg )
+resp = req.search( il )
 item_sets = resp.item_lookup_response[0].items
 
 item_sets.each do |item_set|

@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: browse_node_lookup1,v 1.3 2008/04/11 19:24:24 ianmacd Exp $
+# $Id: browse_node_lookup1,v 1.4 2010/02/20 16:49:11 ianmacd Exp $
 
 require 'amazon/aws/search'
 
@@ -17,8 +17,8 @@ def follow_node(id)
   req.locale = 'us'
 
   bnl = BrowseNodeLookup.new( id, {} )
-  bnl_rg ||= ResponseGroup.new( 'BrowseNodeInfo' )
-  resp = req.search( bnl, bnl_rg )
+  bnl.response_group ||= ResponseGroup.new( 'BrowseNodeInfo' )
+  resp = req.search( bnl )
 
   #items = resp.browse_node_sets.browse_nodes
   nodes = resp.browse_node_lookup_response[0].browse_nodes[0].browse_node

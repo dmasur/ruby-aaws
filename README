@@ -1,4 +1,4 @@
-$Id: README,v 1.23 2009/06/15 12:07:51 ianmacd Exp $
+$Id: README,v 1.26 2010/03/19 19:28:18 ianmacd Exp $
 
 
 Introduction
@@ -79,17 +79,18 @@ You can obtain an AWS Access Key ID here:
   https://aws-portal.amazon.com/gp/aws/developer/registration/index.html
 
 You may see mention of Subscription IDs at the above location. Subscription
-IDs are deprecated by Amazon and, in any case, not supported by Ruby/AWS.
-Please obtain and use an AWS Access Key ID instead.
+IDs are not supported by Ruby/AWS and, in any case, are no longer supported by
+Amazon since the introduction of authenticated requests. Please obtain and use
+an AWS Access Key ID instead.
 
 
 API version
 -----------
 
-Ruby/AWS currently requests the 2009-03-31 revision of the AWS API when
+Ruby/AWS currently requests the 2009-11-01 revision of the AWS API when
 performing its operations:
 
-  http://docs.amazonwebservices.com/AWSECommerceService/2009-03-31/DG/
+  http://docs.amazonwebservices.com/AWSECommerceService/2009-11-01/DG/
 
 However, a different version can be requested via the 'api' parameter in the
 user configuration file.
@@ -143,16 +144,25 @@ Ruby/AWS is currently beta software. Amongst other things, this means:
 
     CartGet
 
-  Multiple operations are supported, but not well tested (by me, anyway).
+  Multiple operations are supported, but have not been heavily used, so there
+  may be residual bugs. The implementation of multiple operations was
+  rewritten from scratch for version 0.8.0, which appears to have resulted in
+  code that is much more robust (not to mention easier to read and maintain).
 
   As of version 0.5.0, batch operations are fully supported, using the
-  Operation#batch method.
+  Operation#batch method. Again, the implementation was scrapped and rewritten
+  for 0.8.0, yielding a big improvement.
+
+  There appear to also be (undocumented) Amazon-imposed restrictions on the
+  use of multiple operations and batch requests, so some experimentation may
+  be required on your part to determine what works and what doesn't.
   
-  Beware of bugs in this area. Quite apart from any mistakes I've made in the
-  implementation, there appear to also be (undocumented) Amazon-imposed
-  restrictions on the use of multiple operations and batch requests, so some
-  experimentation will be required on your part to determine what works and
-  what doesn't.
+  In short, though, my investigations have demonstrated that no more than two
+  operations may be batched together, and no more than two operations may be
+  combined in a multiple operation. Nevertheless, by combining two batched
+  operations in a multiple operation, one can send four base operations to
+  Amazon in a single request. No more than two of these may be from the same
+  class, however.
 
   The 2008-08-19 version of the AWS API added the following operations:
 
@@ -202,10 +212,8 @@ Its contents should look something like this:
 
 The ability to include your secret key was a feature added in version 0.6.0 of
 Ruby/AWS. If you choose to do so, your requests to AWS will be signed for
-authentication by the Amazon's servers.
-
-Amazon plans to make this practice obligatory as of 15th August 2009, so I
-recommend that you adopt it well ahead of time.
+authentication by Amazon's servers. If you don't, your requests will fail,
+because Amazon made this practice obligatory on 15th August 2009.
 
 When Amazon checks for a valid signature, it does so by comparing its
 computation of the signature with the one supplied by the user. In doing this,
@@ -286,7 +294,7 @@ is = ItemSearch.new( 'Books', { 'Title' => 'Ruby' } )
 
 # I want to receive just a small amount of data for the items found.
 #
-rg = ResponseGroup.new( 'Small' )
+is.response_group = ResponseGroup.new( :Small )
 
 req = Request.new
 
@@ -296,7 +304,7 @@ req.locale = 'uk'
 
 # Actually talk to AWS.
 #
-resp = req.search( is, rg )
+resp = req.search( is )
 
 # Drill down to the meat: the array of items returned.
 #
@@ -319,6 +327,24 @@ items.each do |item|
 end
 
 
+Troubleshooting
+---------------
+
+HTTP 400 is the main bane of people's life since Amazon started authenticating
+requests to AWS. If you're trying to get Ruby/AWS to work, but are plagued by
+HTTP 400 responses, here are some possible causes:
+
+- Your ~/.amazonrc file doesn't contain a secret_key_id parameter. Add one.
+
+- Your computer's system clock is running more than 15 minutes slow. Amazon
+  consider a request timestamped more than 15 minutes in the past invalid.
+  Synchronise your system clock with a reliable time source.
+
+  Incidentally, Amazon don't object to requests timestamped in the future, but
+  that's something that may change at any time and therefore shouldn't be
+  relied upon.
+
+
 XML to Ruby mapping
 -------------------
 
@@ -329,7 +355,7 @@ execute the same request.
 
 When this code:
 
-  resp = req.search( is, rg )
+  resp = req.search( is )
 
 was called in the previous section, the following URL was composed and sent to
 AWS as an HTTP GET operation:
@@ -631,7 +657,7 @@ should be enough to get you started.
 
 You can also use the Ruby/AWS mailing-list:
 
-  http://www.caliban.org/mailman/listinfo/ruby-aws
+  http://caliban.org/mailman/listinfo/ruby-aws
 
 to discuss any Ruby/AWS-related subjects and issues.
 
@@ -645,7 +671,7 @@ The ./examples subdirectory contains working examples of code.
 Licence
 -------
 
-This software is copyright (C) 2008-2009 Ian Macdonald and distributed under
+This software is copyright (C) 2008-2010 Ian Macdonald and distributed under
 the terms of the GNU GENERAL PUBLIC LICENSE, a copy of which is included.
 
 -- 

@@ -1,4 +1,4 @@
-# $Id: tc_similarity_lookup.rb,v 1.1 2009/06/03 10:29:24 ianmacd Exp $
+# $Id: tc_similarity_lookup.rb,v 1.2 2010/02/20 17:15:18 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -9,21 +9,10 @@ class TestSimilarityLookup < AWSTest
   def test_similarity_lookup
 
     sl = SimilarityLookup.new( [ 'B000AE4QEC', 'B000051WBE' ] )
-    rg = ResponseGroup.new( :Subjects )
-    response = @req.search( sl, rg )
+    sl_rg = ResponseGroup.new( :Subjects )
+    sl.response_group = sl_rg
 
-    items = response.similarity_lookup_response[0].items
-
-    assert_match( /^\w+/, items.item[0].subjects.subject[0] )
-    assert_match( /^\w+/, items.item[1].subjects.subject[0] )
-
-  end
-
-  def test_similarity_lookup_no_response_group
-
-    sl = SimilarityLookup.new( [ 'B000AE4QEC', 'B000051WBE' ] )
-    sl.response_group = ResponseGroup.new( :Subjects )
-    response = @req.search( sl, nil )
+    response = @req.search( sl )
 
     items = response.similarity_lookup_response[0].items
 

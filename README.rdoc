@@ -1,5 +1,5 @@
 #--
-# $Id: README.rdoc,v 1.25 2009/06/15 23:51:11 ianmacd Exp $
+# $Id: README.rdoc,v 1.29 2010/03/20 12:01:51 ianmacd Exp $
 #++
 #
 #
@@ -98,7 +98,7 @@
 # ID}[https://aws-portal.amazon.com/gp/aws/developer/registration/index.html].
 #
 # You should also apply for an {Associates
-# account}[http://docs.amazonwebservices.com/AWSECommerceService/2009-03-31/GSG/BecominganAssociate.html],
+# account}[http://docs.amazonwebservices.com/AWSECommerceService/2009-11-01/GSG/BecominganAssociate.html],
 # although this isn't strictly necessary. If you do not explicitly provide an
 # Associates tag in the operations you conduct via Ruby/AWS, the tag of the
 # Ruby/AWS author will be used by default.
@@ -111,11 +111,11 @@
 # the library to see how the calls to AWS are mapped to the Ruby world. You
 # should also review this library's
 # RDoc[http://www.ruby-doc.org/core/classes/RDoc.html]
-# documentation[http://www.caliban.org/ruby/ruby-aws/] as well as the
+# documentation[http://caliban.org/ruby/ruby-aws/] as well as the
 # plain-text +README+ file that came with the archive.
 #
 # Additionally, there's a
-# {mailing-list}[http://www.caliban.org/mailman/listinfo/ruby-aws] available,
+# {mailing-list}[http://caliban.org/mailman/listinfo/ruby-aws] available,
 # where you can discuss any Ruby/AWS-related subjects and issues.
 #
 # Please see the AWS Developer Resources {home
@@ -130,16 +130,16 @@
 #
 # == Download
 #
-# Version 0.7.0
-# === {gzip'ed tar archive}[http://www.caliban.org/files/ruby/ruby-aws-0.7.0.tar.gz]
-# === {Ruby Gem}[http://www.caliban.org/files/ruby/ruby-aaws-0.7.0.gem]
-# === {Fedora 9 RPM}[http://www.caliban.org/files/redhat/RPMS/noarch/ruby-aws-0.7.0-1.fc9.noarch.rpm]
-# === {Fedora 9 doc RPM}[http://www.caliban.org/files/redhat/RPMS/noarch/ruby-aws-doc-0.7.0-1.fc9.noarch.rpm]
-# === {Fedora 9 source RPM}[http://www.caliban.org/files/redhat/SRPMS/ruby-aws-0.7.0-1.fc9.src.rpm]
+# Version 0.8.1
+# === {gzip'ed tar archive}[http://caliban.org/files/ruby/ruby-aws-0.8.1.tar.gz]
+# === {Ruby Gem}[http://caliban.org/files/ruby/ruby-aaws-0.8.1.gem]
+# === {Fedora 12 RPM}[http://caliban.org/files/redhat/RPMS/noarch/ruby-aws-0.8.1-1.fc12.noarch.rpm]
+# === {Fedora 12 doc RPM}[http://caliban.org/files/redhat/RPMS/noarch/ruby-aws-doc-0.8.1-1.fc12.noarch.rpm]
+# === {Fedora 12 source RPM}[http://caliban.org/files/redhat/SRPMS/ruby-aws-0.8.1-1.fc12.src.rpm]
 # 
 # 
 # ---
 # Author::   Ian Macdonald <mailto:ian@caliban.org>
-# Version::  0.7.0
-# Copyright:: (C) 2008-2009 Ian Macdonald
+# Version::  0.8.1
+# Copyright:: (C) 2008-2010 Ian Macdonald
 # Licence::  GPL[http://www.gnu.org/copyleft/gpl.html]

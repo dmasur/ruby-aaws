@@ -1,6 +1,6 @@
 #!/usr/bin/ruby -w
 #
-# $Id: batch_operation,v 1.2 2009/02/20 00:37:15 ianmacd Exp $
+# $Id: batch_operation,v 1.3 2010/02/20 16:49:11 ianmacd Exp $
 
 require 'amazon/aws/search'
  
@@ -20,8 +20,9 @@ is2 = ItemSearch.new( 'Music', { 'Title' => 'stranglers' } )
 more_is = [ ItemSearch.new( 'Music', { 'Artist' => 'stranglers' } ) ]
 
 is.batch( more_is )
+is.response_group = rg
 
-batched_response = req.search( is, rg )
+batched_response = req.search( is )
 itemsearch = batched_response.item_search_response[0].items
 
 puts itemsearch

@@ -1,4 +1,4 @@
-# $Id: tc_item_lookup.rb,v 1.2 2009/05/30 11:11:27 ianmacd Exp $
+# $Id: tc_item_lookup.rb,v 1.3 2010/02/20 17:15:17 ianmacd Exp $
 #
 
 require 'test/unit'
@@ -9,25 +9,12 @@ class TestItemLookup < AWSTest
   def test_item_lookup
 
     is = ItemLookup.new( 'ASIN', { 'ItemId' => 'B000AE4QEC' } )
-    response = @req.search( is, @rg )
+    is.response_group = @rg
+    response = @req.search( is )
 
     results = response.kernel
 
     # Ensure we got some actual results back.
-    #
-    assert( results.size > 0 )
-
-  end
-
-  def test_item_lookup_no_response_group
-
-    is = ItemLookup.new( 'ASIN', { 'ItemId' => 'B000AE4QEC' } )
-    is.response_group = ResponseGroup.new( :Small )
-    response = @req.search( is, nil )
-
-    results = response.kernel
-
-    # Ensure we got more than 10 results back.
     #
     assert( results.size > 0 )
 

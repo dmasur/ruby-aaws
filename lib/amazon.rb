@@ -87,7 +87,7 @@ module Amazon
 	# Perform the usual search for the system and user config files.
 	#
 	config_files = [ File.join( '', 'etc', 'amazonrc' ) ]# add rails-file
-  config_files << File.join(RAILS_ROOT, 'config', '.amazonrc') if defined?(Rails.root)
+  config_files << File.join(Rails.root, 'config', 'amazonrc') if defined?(Rails.root)
 
 	# Figure out where home is. The locations after HOME are for Windows.
 	# [ruby-core:12347]
